@@ -55,8 +55,8 @@ DrilldownPieWithLegend.propTypes = {
   title: PropTypes.string.isRequired,
   data: PropTypes.array.isRequired,
   colors: PropTypes.array.isRequired,
-  onBack: PropTypes.func.isRequired,
+  onBack: PropTypes.func,
   theme: PropTypes.string.isRequired,
 };
 
-export default DrilldownPieWithLegend; 
+export default DrilldownPieWithLegend;

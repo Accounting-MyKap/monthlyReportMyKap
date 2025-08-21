@@ -5,7 +5,7 @@ import { formatCurrency } from '../utils/formatters';
  * Etiqueta principal para gráficos de pastel con línea guía doblada (codo), mayor separación y omisión de sectores pequeños
  */
 export const renderMainChartLabel = ({ cx, cy, midAngle, outerRadius, percent, name, value, fill, theme, index }) => {
-  if (percent * 100 < 3) return null; // No mostrar etiquetas para sectores <3%
+  if (percent * 100 < 4) return null; // No mostrar etiquetas para sectores <4%
   const RADIAN = Math.PI / 180;
   const sx = cx + (outerRadius + 10) * Math.cos(-midAngle * RADIAN);
   const sy = cy + (outerRadius + 10) * Math.sin(-midAngle * RADIAN);
@@ -35,7 +35,7 @@ export const renderMainChartLabel = ({ cx, cy, midAngle, outerRadius, percent, n
  * Etiqueta para porcentajes en drilldown de pastel con línea guía doblada (codo), mayor separación y omisión de sectores pequeños
  */
 export const renderDrilldownPercentageLabel = ({ cx, cy, midAngle, outerRadius, percent, fill, theme, index }) => {
-  if (percent * 100 < 3) return null;
+  if (percent * 100 < 4) return null; // No mostrar etiquetas para sectores <4%
   const RADIAN = Math.PI / 180;
   const sx = cx + (outerRadius + 8) * Math.cos(-midAngle * RADIAN);
   const sy = cy + (outerRadius + 8) * Math.sin(-midAngle * RADIAN);
@@ -56,4 +56,4 @@ export const renderDrilldownPercentageLabel = ({ cx, cy, midAngle, outerRadius, 
       </text>
     </g>
   );
-}; 
+};

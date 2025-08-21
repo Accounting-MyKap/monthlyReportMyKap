@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Calendar, Sun, Moon, Target, TrendingUp, Clock, Shuffle, AlertTriangle, Printer } from 'lucide-react';
 import { themeConfig } from './config/theme';
 import KpiCard from './components/KpiCard';
@@ -40,12 +40,10 @@ export default function App() {
 
   const latestMonthData = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
 
-  const activosRestantes = latestMonthData ? latestMonthData.activos - latestMonthData.carteraPropia : 0;
-
   // Validación de datos para evitar errores en los gráficos
   const safeData = (data) => Array.isArray(data) && data.length > 0 ? data : [{ name: 'Sin datos', value: 1, displayValue: 1 }];
 
-  const mapDataForChart = (dataObject) => dataObject ? Object.entries(dataObject).map(([name, value]) => ({ name, value, displayValue: value })) : [];
+  const mapDataForChart = (dataObject) => dataObject ? Object.entries(dataObject).filter(([name, value]) => value > 0).map(([name, value]) => ({ name, value, displayValue: value })) : [];
 
   const {
     balanceComposition,
@@ -59,11 +57,20 @@ export default function App() {
       balanceComposition: [], assetComposition: [], liabilityComposition: [], equityComposition: [], carteraComposition: [], carteraPropiaComposition: []
     };
     const originalDataForMonth = financialData.find(d => d.month === latestMonthData.month) || {};
-    const capitalEstimado = latestMonthData.patrimonio * 0.9;
+    
+    // Calcular ajustes totales sumando todos los componentes de ajuste
+    const ajustesTotal = (
+      (latestMonthData.utilidadAcum2024 || 0) +
+      (latestMonthData.ajusteRamParkPlace || 0) +
+      (latestMonthData.ajusteAmortizacion2024 || 0) +
+      (latestMonthData.withholdingSociosExtranjeros2024 || 0) +
+      (latestMonthData.provisionWithholdingSociosExtranjeros2025 || 0)
+    );
+    
     const equityData = [
-      { name: 'Capital', value: capitalEstimado },
-      { name: 'Utilidad del periodo', value: latestMonthData.utilidad },
-      { name: 'Ajustes', value: latestMonthData.patrimonio - capitalEstimado - latestMonthData.utilidad }
+      { name: 'Capital', value: latestMonthData.capital || 0 },
+      { name: 'Utilidad del periodo', value: latestMonthData.utilidad || 0 },
+      { name: 'Ajustes', value: ajustesTotal }
     ];
     return {
       balanceComposition: [
@@ -71,12 +78,7 @@ export default function App() {
         { name: 'Pasivos', value: latestMonthData.pasivos },
         { name: 'Patrimonio', value: latestMonthData.patrimonio }
       ].map(d => ({ ...d, displayValue: d.value })),
-      assetComposition: [
-        { name: 'Cartera Hipotecas', value: latestMonthData.carteraPropia },
-        { name: 'Inversiones', value: activosRestantes * 0.6 },
-        { name: 'Bancos', value: activosRestantes * 0.35 },
-        { name: 'Otros Activos', value: activosRestantes * 0.05 }
-      ].map(d => ({ ...d, displayValue: d.value })),
+      assetComposition: mapDataForChart(originalDataForMonth.assetBreakdown),
       liabilityComposition: mapDataForChart(originalDataForMonth.liabilityBreakdown),
       equityComposition: equityData.map(item => ({ name: item.name, value: Math.abs(item.value), displayValue: item.value })),
       carteraComposition: [
@@ -246,17 +248,17 @@ export default function App() {
             <h2 className="text-xl font-bold mb-4" style={{color: theme === 'dark' ? '#fff' : currentTheme.accent}}>Evolución de Resultados (P&L)</h2>
             <div className="w-full h-[420px]">
               <ResponsiveContainer>
-                <BarChart data={safeData(filteredData)} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <LineChart data={safeData(filteredData)} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={currentTheme.grid} />
                   <XAxis dataKey="month" stroke={currentTheme.axis} />
                   <YAxis stroke={currentTheme.axis} tickFormatter={value => `$${value / 1000}k`} />
-                  <Tooltip content={<BarLineTooltip theme={theme} />} cursor={{ fill: 'rgba(128, 128, 128, 0.1)' }} />
+                  <Tooltip content={<BarLineTooltip theme={theme} />} />
                   <Legend />
-                  <Bar dataKey="ingresos" fill="#06b6d4" name="Ingresos" />
-                  <Bar dataKey="costos" fill="#f59e0b" name="Costos" />
-                  <Bar dataKey="gastos" fill="#f97316" name="Gastos" />
-                  <Bar dataKey="utilidad" fill="#22c55e" name="Utilidad" />
-                </BarChart>
+                  <Line type="monotone" dataKey="ingresos" stroke="#06b6d4" strokeWidth={3} name="Ingresos" />
+                  <Line type="monotone" dataKey="costos" stroke="#f59e0b" strokeWidth={3} name="Costos" />
+                  <Line type="monotone" dataKey="gastos" stroke="#f97316" strokeWidth={3} name="Gastos" />
+                  <Line type="monotone" dataKey="utilidad" stroke="#22c55e" strokeWidth={3} name="Utilidad" />
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -270,28 +272,8 @@ export default function App() {
             <StaticPieWithLegend title={`Composición de Gastos (${endDate})`} data={safeData(mapDataForChart(latestMonthData?.expenseBreakdown))} colors={COLORS.expenses} theme={theme} />
           </div>
         </div>
-        {/* 6. Evolución de la Utilidad Neta */}
-        <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg mt-8`}>
-          <h2 className="text-xl font-bold mb-4" style={{color: theme === 'dark' ? '#fff' : currentTheme.accent}}>Evolución de la Utilidad Neta</h2>
-          <div className="w-full h-[300px]">
-            <ResponsiveContainer>
-              <AreaChart data={safeData(filteredData)} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="colorUtilidad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={currentTheme.grid} />
-                <XAxis dataKey="month" stroke={currentTheme.axis} />
-                <YAxis stroke={currentTheme.axis} tickFormatter={value => `$${value / 1000}k`} />
-                <Tooltip content={<BarLineTooltip theme={theme} />} />
-                <Area type="monotone" dataKey="utilidad" stroke="#22c55e" fillOpacity={1} fill="url(#colorUtilidad)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        {/* 7. KPIs ocupando todo el ancho */}
+
+        {/* 6. KPIs ocupando todo el ancho */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-8">
           <KpiCard icon={Target} title="Approval Rate" value={latestMonthData?.approvalRate ? `${latestMonthData.approvalRate}%` : 'N/A'} />
           <KpiCard icon={TrendingUp} title="Disbursement Rate" value={latestMonthData?.disbursementRate ? `${latestMonthData.disbursementRate}%` : 'N/A'} />
