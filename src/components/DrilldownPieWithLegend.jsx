@@ -9,6 +9,22 @@ import { formatCurrency } from '../utils/formatters';
 
 const DrilldownPieWithLegend = ({ title, data, colors, onBack, theme }) => {
   const sortedData = useMemo(() => (Array.isArray(data) ? [...data].sort((a, b) => b.value - a.value) : []), [data]);
+  
+  // Special color mapping for Equity Details chart
+  const getColorForEquityComponent = (name) => {
+    const equityColorMap = {
+      'Capital': '#15803d',
+      'Period Earnings': '#22c55e',
+      'Accumulated Earnings': '#f97316',
+      'Provisions': '#15803d'
+    };
+    return equityColorMap[name] || colors[0];
+  };
+  
+  const dataWithColors = sortedData.map((entry, index) => ({
+    ...entry,
+    fill: title === 'Equity Details' ? getColorForEquityComponent(entry.name) : colors[index % colors.length]
+  }));
 
   return (
     <div className="h-full flex flex-col">
@@ -19,7 +35,7 @@ const DrilldownPieWithLegend = ({ title, data, colors, onBack, theme }) => {
         <ResponsiveContainer>
           <PieChart margin={{ top: 30, right: 30, bottom: 30, left: 30 }}>
             <Pie
-              data={sortedData}
+              data={dataWithColors}
               dataKey="value"
               nameKey="name"
               cx="50%"
@@ -28,8 +44,8 @@ const DrilldownPieWithLegend = ({ title, data, colors, onBack, theme }) => {
               labelLine={false}
               label={(props) => renderDrilldownPercentageLabel({ ...props, theme })}
             >
-              {sortedData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+              {dataWithColors.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
             </Pie>
             <Tooltip content={<PieCustomTooltip theme={theme} />} />
@@ -37,10 +53,10 @@ const DrilldownPieWithLegend = ({ title, data, colors, onBack, theme }) => {
         </ResponsiveContainer>
       </div>
       <div className="w-full mt-2 space-y-2 px-4 overflow-y-auto">
-        {sortedData.map((entry, index) => (
+        {dataWithColors.map((entry, index) => (
           <div key={`legend-${index}`} className="flex items-center justify-between text-sm">
             <div className="flex items-center">
-              <div className="w-3 h-3 rounded-sm mr-2" style={{ backgroundColor: colors[index % colors.length] }} />
+              <div className="w-3 h-3 rounded-sm mr-2" style={{ backgroundColor: entry.fill }} />
               <span style={{color: themeConfig[theme].textSecondary}}>{entry.name}</span>
             </div>
             <span style={{color: themeConfig[theme].textPrimary, fontFamily: 'monospace'}}>{formatCurrency(entry.displayValue)}</span>

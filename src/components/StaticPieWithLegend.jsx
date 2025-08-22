@@ -10,7 +10,7 @@ const StaticPieWithLegend = ({ title, data, colors, theme, onClick }) => {
   const sortedData = useMemo(() => (Array.isArray(data) ? [...data].sort((a, b) => b.value - a.value) : []), [data]);
 
   return (
-    <div className={`${themeConfig[theme].card} p-6 rounded-2xl shadow-lg h-full flex flex-col`}>
+    <div className="h-full flex flex-col">
       <h2 className="text-xl font-bold mb-4 flex-shrink-0" style={{color: theme === 'dark' ? '#fff' : themeConfig[theme].accent}}>{title}</h2>
       <div className="w-full h-[250px] flex-shrink-0">
         <ResponsiveContainer>
@@ -57,4 +57,4 @@ StaticPieWithLegend.propTypes = {
   onClick: PropTypes.func,
 };
 
-export default StaticPieWithLegend; 
+export default StaticPieWithLegend;

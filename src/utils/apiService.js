@@ -1,15 +1,15 @@
 /**
- * Genera un análisis financiero utilizando la API de Gemini
- * @param {string} prompt - El prompt para generar el análisis
- * @returns {Promise<string>} - El texto del análisis generado
+ * Generates a financial analysis using the Gemini API
+ * @param {string} prompt - The prompt to generate the analysis
+ * @returns {Promise<string>} - The generated analysis text
  */
 export const generateFinancialAnalysis = async (prompt) => {
   try {
-    // Usa variables de entorno para la API Key
+    // Use environment variables for the API Key
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     
     if (!apiKey) {
-      throw new Error('API key no encontrada. Por favor, configura VITE_GEMINI_API_KEY en tu archivo .env.local');
+      throw new Error('API key not found. Please configure VITE_GEMINI_API_KEY in your .env.local file');
     }
     
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
@@ -24,30 +24,30 @@ export const generateFinancialAnalysis = async (prompt) => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       const errorMessage = errorData?.error?.message || response.statusText;
-      throw new Error(`Error en la API de Gemini (${response.status}): ${errorMessage}`);
+      throw new Error(`Gemini API error (${response.status}): ${errorMessage}`);
     }
     
     const result = await response.json();
     
     if (!result.candidates || !result.candidates[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Formato de respuesta inesperado de la API de Gemini');
+      throw new Error('Unexpected response format from Gemini API');
     }
     
     return result.candidates[0].content.parts[0].text;
   } catch (error) {
-    console.error("Error detallado:", error);
+    console.error("Detailed error:", error);
     
-    // Mensajes de error más específicos según el tipo de error
+    // More specific error messages based on error type
     if (error.message.includes('API key')) {
-      throw new Error('Error de configuración: ' + error.message);
+      throw new Error('Configuration error: ' + error.message);
     } else if (error.name === 'TypeError' || error.name === 'SyntaxError') {
-      throw new Error('Error al procesar la respuesta de la API');
+      throw new Error('Error processing API response');
     } else if (error.name === 'AbortError') {
-      throw new Error('La solicitud fue cancelada por tiempo de espera');
+      throw new Error('Request was cancelled due to timeout');
     } else if (!navigator.onLine) {
-      throw new Error('No hay conexión a Internet. Por favor, verifica tu conexión e intenta nuevamente.');
+      throw new Error('No internet connection. Please check your connection and try again.');
     } else {
-      throw new Error(`Error al generar el análisis: ${error.message}`);
+      throw new Error(`Error generating analysis: ${error.message}`);
     }
   }
 };

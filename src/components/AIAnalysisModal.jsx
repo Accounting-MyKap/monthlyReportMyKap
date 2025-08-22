@@ -9,7 +9,7 @@ const AIAnalysisModal = ({ theme, isOpen, onClose, analysisResult, isLoading, on
       <div className={`${themeConfig[theme].card} rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all`}>
         <div className="flex justify-between items-center p-5 border-b border-gray-700">
           <h3 className={`text-xl font-bold ${themeConfig[theme].accent} flex items-center`}>
-            <Sparkles className="mr-2"/> Análisis Financiero con IA
+            <Sparkles className="mr-2"/> Financial Analysis With AI
           </h3>
           <button onClick={onClose} className={`${themeConfig[theme].textSecondary} hover:text-white`}>
             <IconX size={24} />
@@ -19,7 +19,7 @@ const AIAnalysisModal = ({ theme, isOpen, onClose, analysisResult, isLoading, on
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-48">
               <Loader className={`animate-spin h-12 w-12 ${themeConfig[theme].accent}`} />
-              <p className={`mt-4 ${themeConfig[theme].textSecondary}`}>Generando análisis...</p>
+              <p className={`mt-4 ${themeConfig[theme].textSecondary}`}>Generating Analysis...</p>
             </div>
           ) : (
             <div className="prose prose-invert prose-sm md:prose-base max-w-none">
@@ -49,7 +49,7 @@ const AIAnalysisModal = ({ theme, isOpen, onClose, analysisResult, isLoading, on
               className="flex items-center px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-white"
             >
               <Copy className="mr-2 h-4 w-4" />
-              {copySuccess || 'Copiar Texto'}
+              {copySuccess || 'Copy Text'}
             </button>
           </div>
         )}
