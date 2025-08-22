@@ -23,7 +23,7 @@ const DrilldownPieWithLegend = ({ title, data, colors, onBack, theme }) => {
   
   const dataWithColors = sortedData.map((entry, index) => ({
     ...entry,
-    fill: title === 'Equity Details' ? getColorForEquityComponent(entry.name) : colors[index % colors.length]
+    fill: title.includes('Equity Details') ? getColorForEquityComponent(entry.name) : colors[index % colors.length]
   }));
 
   return (
