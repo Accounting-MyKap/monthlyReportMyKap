@@ -258,6 +258,7 @@ export default function App() {
                   <Line type="monotone" dataKey="costos" stroke="#f59e0b" strokeWidth={3} name="Costs" />
                   <Line type="monotone" dataKey="gastos" stroke="#f97316" strokeWidth={3} name="Expenses" />
                   <Line type="monotone" dataKey="utilidadDelPeriodo" stroke="#22c55e" strokeWidth={3} name="Profit" />
+                  <Line type="monotone" dataKey="utilidad" stroke="#8b5cf6" strokeWidth={3} name="Accumulated Profit 2025" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
