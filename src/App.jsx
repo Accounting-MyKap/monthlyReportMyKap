@@ -80,7 +80,7 @@ export default function App() {
       ].map(d => ({ ...d, displayValue: d.value })),
       assetComposition: mapDataForChart(originalDataForMonth.assetBreakdown),
       liabilityComposition: mapDataForChart(originalDataForMonth.liabilityBreakdown),
-      equityComposition: equityData.map(item => ({ name: item.name, value: Math.abs(item.value), displayValue: item.value })),
+      equityComposition: equityData.filter(item => item.value !== 0).map(item => ({ name: item.name, value: Math.abs(item.value), displayValue: item.value })),
       carteraComposition: [
         { name: 'Own Portfolio', value: latestMonthData.carteraPropia },
         { name: 'Third Party Portfolio', value: latestMonthData.carteraTerceros }
