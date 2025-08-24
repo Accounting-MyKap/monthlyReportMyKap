@@ -255,10 +255,10 @@ export default function App() {
             <DrilldownPieWithLegend title={`Equity Details (${endDate})`} data={safeData(equityComposition)} colors={COLORS.equity} theme={theme} />
           </div>
         </div>
-        {/* 4. Results Evolution (P&L) */}
+        {/* 4. Performance (P&L) */}
         <div className="grid grid-cols-1 gap-8 mt-8">
           <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4 px-2" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Results Evolution (P&L)</h2>
+            <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4 px-2" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Performance (P&L)</h2>
             <div className="w-full h-64 sm:h-80 md:h-[420px]">
               <ResponsiveContainer>
                 <LineChart data={safeData(filteredData)} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
