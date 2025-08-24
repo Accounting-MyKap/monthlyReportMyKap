@@ -22,7 +22,7 @@ export const themeConfig = {
     card: 'bg-white',
     textPrimary: '#1e293b',
     textSecondary: '#64748b',
-    accent: '#06b6d4',
+    accent: '#004dda',
     axis: '#4a5568',
     grid: '#e2e8f0',
     tooltip: {

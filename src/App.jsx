@@ -8,11 +8,12 @@ import BarLineTooltip from './components/BarLineTooltip';
 import { renderMainChartLabel } from './components/chartLabels';
 import DrilldownPieWithLegend from './components/DrilldownPieWithLegend';
 import StaticPieWithLegend from './components/StaticPieWithLegend';
+import Logo from './components/Logo';
 import { financialData, allMonths } from './data/financialData';
 
 const COLORS = {
-  main: ['#06b6d4', '#f97316', '#22c55e'],
-  assets: ['#0e7490', '#0891b2', '#06b6d4', '#67e8f9'],
+  main: ['#004dda', '#f97316', '#22c55e'],
+  assets: ['#0e7490', '#0891b2', '#004dda', '#67e8f9'],
   liabilities: ['#c2410c', '#ea580c', '#f97316', '#fb923c', '#fdba74', '#fed7aa'],
   equity: ['#15803d', '#f97316', '#22c55e'],
   income: ['#083344', '#075985', '#0369a1', '#0ea5e9', '#38bdf8', '#7dd3fc'],
@@ -170,23 +171,35 @@ export default function App() {
         }
       `}</style>
       {/* Header and sticky filters */}
-      <div className="sticky top-0 z-50 bg-[rgba(243,244,246,0.95)] backdrop-blur shadow-md pb-2 mb-4 max-w-7xl mx-auto rounded-2xl">
-        <header className="mb-2 relative no-print">
-          <h1 className="text-3xl sm:text-4xl font-bold text-center" style={{color: theme === 'dark' ? '#fff' : currentTheme.accent}}>Interactive Financial Dashboard</h1>
-          <p className={`text-center ${currentTheme.textSecondary} mt-2`}>Financial Analysis</p>
-          <div className="absolute top-0 right-0">
-            <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label="Change Theme" className="p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500">
-              {theme === 'light' ? <Moon className="h-6 w-6" /> : <Sun className="h-6 w-6" />}
-            </button>
+      <div className={`sticky top-0 z-50 ${theme === 'dark' ? 'bg-gray-800/95' : 'bg-[rgba(243,244,246,0.95)]'} backdrop-blur shadow-md pb-1 mb-2 max-w-7xl mx-auto rounded-2xl`}>
+        <header className="relative no-print">
+          <div className="grid grid-cols-3 items-center px-2 sm:px-4 py-0">
+            {/* Logo en contenedor independiente - columna izquierda */}
+            <div className="flex justify-start">
+              <Logo theme={theme} />
+            </div>
+            
+            {/* Títulos centrados - columna central */}
+            <div className="flex flex-col items-center justify-center">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Financial Dashboard</h1>
+              <p className="mt-0 text-sm sm:text-base" style={{color: theme === 'dark' ? '#fff' : '#64748b'}}>Financial Analysis</p>
+            </div>
+            
+            {/* Botón de tema - columna derecha */}
+            <div className="flex justify-end">
+              <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label="Change Theme" className="p-0.5 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500">
+                {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
         </header>
-        <div className={`flex flex-wrap justify-center items-center gap-4 p-4 rounded-lg no-print`}>
-          <label htmlFor="start-date" className={`flex items-center gap-2 ${currentTheme.textSecondary}`}><Calendar className={`h-5 w-5 ${currentTheme.accent}`}/> Start Date:</label>
-          <select id="start-date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${currentTheme.select.bg} ${currentTheme.select.text} ${currentTheme.select.border} rounded-md p-2`}>
+        <div className={`flex flex-wrap justify-center items-center gap-2 sm:gap-4 px-2 sm:px-4 pb-1.5 pt-0.5 rounded-lg no-print`}>
+          <label htmlFor="start-date" className="flex items-center gap-1 sm:gap-2 text-sm sm:text-base" style={{color: theme === 'dark' ? '#fff' : '#64748b'}}><Calendar className={`h-4 w-4 sm:h-5 sm:w-5 ${currentTheme.accent}`}/> Start Date:</label>
+          <select id="start-date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${currentTheme.select.bg} ${currentTheme.select.text} ${currentTheme.select.border} rounded-md p-1 sm:p-2 text-sm sm:text-base`}>
             {allMonths.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-          <label htmlFor="end-date" className={`flex items-center gap-2 ${currentTheme.textSecondary}`}><Calendar className={`h-5 w-5 ${currentTheme.accent}`}/> End Date:</label>
-          <select id="end-date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${currentTheme.select.bg} ${currentTheme.select.text} ${currentTheme.select.border} rounded-md p-2`}>
+          <label htmlFor="end-date" className="flex items-center gap-1 sm:gap-2 text-sm sm:text-base" style={{color: theme === 'dark' ? '#fff' : '#64748b'}}><Calendar className={`h-4 w-4 sm:h-5 sm:w-5 ${currentTheme.accent}`}/> End Date:</label>
+          <select id="end-date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${currentTheme.select.bg} ${currentTheme.select.text} ${currentTheme.select.border} rounded-md p-1 sm:p-2 text-sm sm:text-base`}>
             {allMonths.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
@@ -196,10 +209,10 @@ export default function App() {
         {/* 1. Balance Sheet Composition */}
         <div className="grid grid-cols-1 gap-8">
           <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <h2 className="text-xl font-bold text-center mb-4" style={{color: theme === 'dark' ? '#fff' : currentTheme.accent}}>Balance Sheet Composition ({endDate})</h2>
-            <div className="w-full h-[400px]">
+            <h2 className="text-lg sm:text-xl font-bold text-center mb-2 sm:mb-4 px-2" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Balance Sheet Composition ({endDate})</h2>
+            <div className="w-full h-64 sm:h-80 md:h-96">
               <ResponsiveContainer>
-                <PieChart margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
+                <PieChart margin={{ top: 20, right: 40, left: 40, bottom: 20 }}>
                   <Pie
                     data={safeData(balanceComposition)}
                     dataKey="value"
@@ -245,8 +258,8 @@ export default function App() {
         {/* 4. Results Evolution (P&L) */}
         <div className="grid grid-cols-1 gap-8 mt-8">
           <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <h2 className="text-xl font-bold mb-4" style={{color: theme === 'dark' ? '#fff' : currentTheme.accent}}>Results Evolution (P&L)</h2>
-            <div className="w-full h-[420px]">
+            <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4 px-2" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Results Evolution (P&L)</h2>
+            <div className="w-full h-64 sm:h-80 md:h-[420px]">
               <ResponsiveContainer>
                 <LineChart data={safeData(filteredData)} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={currentTheme.grid} />
@@ -254,7 +267,7 @@ export default function App() {
                   <YAxis stroke={currentTheme.axis} tickFormatter={value => `$${value / 1000}k`} />
                   <Tooltip content={<BarLineTooltip theme={theme} />} />
                   <Legend />
-                  <Line type="monotone" dataKey="ingresos" stroke="#06b6d4" strokeWidth={3} name="Income" />
+                  <Line type="monotone" dataKey="ingresos" stroke="#004dda" strokeWidth={3} name="Income" />
                   <Line type="monotone" dataKey="costos" stroke="#f59e0b" strokeWidth={3} name="Costs" />
                   <Line type="monotone" dataKey="gastos" stroke="#f97316" strokeWidth={3} name="Expenses" />
                   <Line type="monotone" dataKey="utilidadDelPeriodo" stroke="#22c55e" strokeWidth={3} name="Profit" />
@@ -276,11 +289,11 @@ export default function App() {
 
         {/* 6. KPIs ocupando todo el ancho */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-8">
-          <KpiCard icon={Target} title="Approval Rate" value={latestMonthData?.approvalRate ? `${latestMonthData.approvalRate}%` : 'N/A'} />
-          <KpiCard icon={TrendingUp} title="Disbursement Rate" value={latestMonthData?.disbursementRate ? `${latestMonthData.disbursementRate}%` : 'N/A'} />
-          <KpiCard icon={Clock} title="Total Cycle" value={latestMonthData?.timeCycle ? `${latestMonthData.timeCycle} days` : 'N/A'} />
-          <KpiCard icon={Shuffle} title="LTV / CAC" value={latestMonthData?.ltvCac ?? 'N/A'} />
-          <KpiCard icon={AlertTriangle} title="NPLs" value={latestMonthData?.npls ? `${latestMonthData.npls}%` : 'N/A'} />
+          <KpiCard icon={Target} title="Approval Rate" value={latestMonthData?.approvalRate ? `${latestMonthData.approvalRate}%` : 'N/A'} theme={theme} />
+          <KpiCard icon={TrendingUp} title="Disbursement Rate" value={latestMonthData?.disbursementRate ? `${latestMonthData.disbursementRate}%` : 'N/A'} theme={theme} />
+          <KpiCard icon={Clock} title="Total Cycle" value={latestMonthData?.timeCycle ? `${latestMonthData.timeCycle} days` : 'N/A'} theme={theme} />
+          <KpiCard icon={Shuffle} title="LTV / CAC" value={latestMonthData?.ltvCac ?? 'N/A'} theme={theme} />
+          <KpiCard icon={AlertTriangle} title="NPLs" value={latestMonthData?.npls ? `${latestMonthData.npls}%` : 'N/A'} theme={theme} />
         </div>
       </div>
     </div>

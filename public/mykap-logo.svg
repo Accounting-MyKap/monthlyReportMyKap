@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="600" height="200">
+  <!-- MyKap Logo with Text - Header -->
+  <defs>
+    <style>
+      .logo-blue { fill: #2563eb; }
+      .logo-black { fill: #000000; }
+    </style>
+  </defs>
+  
+  <!-- House outline -->
+  <path class="logo-blue" d="M260 50 L340 20 L420 50 L420 30 L435 30 L435 65 L420 65 L420 140 L390 140 L390 80 L290 80 L290 140 L260 140 Z" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+  
+  <!-- K letter inside house -->
+  <path class="logo-blue" d="M305 40 L305 120 L315 120 L315 85 L330 120 L345 120 L325 80 L342 40 L330 40 L315 70 L315 40 Z" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  
+  <!-- Text: My --
