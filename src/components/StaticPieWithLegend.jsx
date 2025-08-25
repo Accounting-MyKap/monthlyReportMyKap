@@ -69,11 +69,6 @@ const StaticPieWithLegend = ({ title, data, colors, theme, onClick }) => {
           <span style={{color: themeConfig[theme].textPrimary, fontFamily: 'monospace'}}>{formatCurrency(totalValue)}</span>
         </div>
         
-        {/* Breakdown label */}
-        <div className="text-xs italic" style={{color: themeConfig[theme].textSecondary}}>
-          Breakdown as follows:
-        </div>
-        
         {/* Chart data items */}
         {sortedData.map((entry, index) => (
           <div key={`legend-${index}`} className="flex items-center justify-between text-sm">

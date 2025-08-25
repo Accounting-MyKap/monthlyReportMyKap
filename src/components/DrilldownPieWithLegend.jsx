@@ -7,7 +7,7 @@ import PieCustomTooltip from './PieCustomTooltip';
 import { renderDrilldownPercentageLabel } from './chartLabels';
 import { formatCurrency } from '../utils/formatters';
 
-const DrilldownPieWithLegend = ({ title, data, colors, onBack, theme }) => {
+const DrilldownPieWithLegend = ({ title, data, colors, theme }) => {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   
   useEffect(() => {
@@ -87,11 +87,6 @@ const DrilldownPieWithLegend = ({ title, data, colors, onBack, theme }) => {
           <span style={{color: themeConfig[theme].textPrimary, fontFamily: 'monospace'}}>{formatCurrency(totalValue)}</span>
         </div>
         
-        {/* Breakdown label */}
-        <div className="text-xs italic" style={{color: themeConfig[theme].textSecondary}}>
-          Breakdown as follows:
-        </div>
-        
         {/* Chart data items */}
         {dataWithColors.map((entry, index) => (
           <div key={`legend-${index}`} className="flex items-center justify-between text-sm">
@@ -111,7 +106,6 @@ DrilldownPieWithLegend.propTypes = {
   title: PropTypes.string.isRequired,
   data: PropTypes.array.isRequired,
   colors: PropTypes.array.isRequired,
-  onBack: PropTypes.func,
   theme: PropTypes.string.isRequired,
 };
 

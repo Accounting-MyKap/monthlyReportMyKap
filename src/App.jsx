@@ -36,7 +36,12 @@ export default function App() {
   const filteredData = useMemo(() => {
     const startIndex = allMonths.indexOf(startDate);
     const endIndex = allMonths.indexOf(endDate);
-    return startIndex <= endIndex ? financialData.slice(startIndex, endIndex + 1) : [];
+    const data = startIndex <= endIndex ? financialData.slice(startIndex, endIndex + 1) : [];
+    // Add combined costs and expenses field
+    return data.map(item => ({
+      ...item,
+      costosYGastos: (item.costos || 0) + (item.gastos || 0)
+    }));
   }, [startDate, endDate]);
 
   const latestMonthData = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
@@ -173,7 +178,7 @@ export default function App() {
       {/* Header and sticky filters */}
       <div className={`sticky top-0 z-50 ${theme === 'dark' ? 'bg-gray-800/95' : 'bg-[rgba(243,244,246,0.95)]'} backdrop-blur shadow-md pb-1 mb-2 max-w-7xl mx-auto rounded-2xl`}>
         <header className="relative no-print">
-          <div className="grid grid-cols-3 items-center px-2 sm:px-4 py-0">
+          <div className="grid grid-cols-3 items-center px-2 sm:px-4 py-0.1">
             {/* Logo en contenedor independiente - columna izquierda */}
             <div className="flex justify-start">
               <Logo theme={theme} />
@@ -181,19 +186,18 @@ export default function App() {
             
             {/* Títulos centrados - columna central */}
             <div className="flex flex-col items-center justify-center">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Financial Dashboard</h1>
-              <p className="mt-0 text-sm sm:text-base" style={{color: theme === 'dark' ? '#fff' : '#64748b'}}>Financial Analysis</p>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Financial Dashboard</h1>
             </div>
             
             {/* Botón de tema - columna derecha */}
             <div className="flex justify-end">
               <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label="Change Theme" className="p-0.5 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500">
-                {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
               </button>
             </div>
           </div>
         </header>
-        <div className={`flex flex-wrap justify-center items-center gap-2 sm:gap-4 px-2 sm:px-4 pb-1.5 pt-0.5 rounded-lg no-print`}>
+        <div className={`flex flex-wrap justify-center items-center gap-2 sm:gap-4 px-2 sm:px-4 pb-1 pt-0 rounded-lg no-print`}>
           <label htmlFor="start-date" className="flex items-center gap-1 sm:gap-2 text-sm sm:text-base" style={{color: theme === 'dark' ? '#fff' : '#64748b'}}><Calendar className={`h-4 w-4 sm:h-5 sm:w-5 ${currentTheme.accent}`}/> Start Date:</label>
           <select id="start-date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${currentTheme.select.bg} ${currentTheme.select.text} ${currentTheme.select.border} rounded-md p-1 sm:p-2 text-sm sm:text-base`}>
             {allMonths.map(m => <option key={m} value={m}>{m}</option>)}
@@ -206,10 +210,10 @@ export default function App() {
       </div>
       {/* Main container for charts and sections */}
       <div className="max-w-7xl mx-auto">
-        {/* 1. Balance Sheet Composition */}
+        {/* 1. Balance Sheet Breakdown */}
         <div className="grid grid-cols-1 gap-8">
           <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <h2 className="text-lg sm:text-xl font-bold text-center mb-2 sm:mb-4 px-2" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Balance Sheet Composition ({endDate})</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-center mb-2 sm:mb-4 px-2" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Balance Sheet Breakdown ({endDate})</h2>
             <div className="w-full h-64 sm:h-80 md:h-96">
               <ResponsiveContainer>
                 <PieChart margin={{ top: 20, right: 40, left: 40, bottom: 20 }}>
@@ -233,10 +237,10 @@ export default function App() {
             </div>
           </div>
         </div>
-        {/* 2. Asset Details and Portfolio Distribution */}
+        {/* 2. Assets and Portfolio Distribution */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full">
           <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg`}>
-            <DrilldownPieWithLegend title={`Asset Details (${endDate})`} data={safeData(assetComposition)} colors={COLORS.assets} theme={theme} />
+            <DrilldownPieWithLegend title={`Assets (${endDate})`} data={safeData(assetComposition)} colors={COLORS.assets} theme={theme} />
           </div>
           <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg`}>
             {portfolioView === 'main' ? (
@@ -246,13 +250,13 @@ export default function App() {
             )}
           </div>
         </div>
-        {/* 3. Liability Details and Equity Details */}
+        {/* 3. Liabilities and Equity */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full">
           <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg`}>
-            <DrilldownPieWithLegend title={`Liability Details (${endDate})`} data={safeData(liabilityComposition)} colors={COLORS.liabilities} theme={theme} />
+            <DrilldownPieWithLegend title={`Liabilities (${endDate})`} data={safeData(liabilityComposition)} colors={COLORS.liabilities} theme={theme} />
           </div>
           <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg`}>
-            <DrilldownPieWithLegend title={`Equity Details (${endDate})`} data={safeData(equityComposition)} colors={COLORS.equity} theme={theme} />
+            <DrilldownPieWithLegend title={`Equity (${endDate})`} data={safeData(equityComposition)} colors={COLORS.equity} theme={theme} />
           </div>
         </div>
         {/* 4. Performance (P&L) */}
@@ -268,8 +272,7 @@ export default function App() {
                   <Tooltip content={<BarLineTooltip theme={theme} />} />
                   <Legend />
                   <Line type="monotone" dataKey="ingresos" stroke="#004dda" strokeWidth={3} name="Income" />
-                  <Line type="monotone" dataKey="costos" stroke="#f59e0b" strokeWidth={3} name="Costs" />
-                  <Line type="monotone" dataKey="gastos" stroke="#f97316" strokeWidth={3} name="Expenses" />
+                  <Line type="monotone" dataKey="costosYGastos" stroke="#f59e0b" strokeWidth={3} name="Costs & Expenses" />
                   <Line type="monotone" dataKey="utilidadDelPeriodo" stroke="#22c55e" strokeWidth={3} name="Profit" />
                   <Line type="monotone" dataKey="utilidad" stroke="#8b5cf6" strokeWidth={3} name="Accumulated Profit 2025" />
                 </LineChart>
@@ -277,13 +280,13 @@ export default function App() {
             </div>
           </div>
         </div>
-        {/* 5. Income Details and Expense Details */}
+        {/* 5. Income and Expense Breakdown */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full">
           <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <StaticPieWithLegend title={`Income Composition (${endDate})`} data={safeData(mapDataForChart(latestMonthData?.incomeBreakdown))} colors={COLORS.income} theme={theme} />
+            <StaticPieWithLegend title={`Income Breakdown (${endDate})`} data={safeData(mapDataForChart(latestMonthData?.incomeBreakdown))} colors={COLORS.income} theme={theme} />
           </div>
           <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <StaticPieWithLegend title={`Expense Composition (${endDate})`} data={safeData(mapDataForChart(latestMonthData?.expenseBreakdown))} colors={COLORS.expenses} theme={theme} />
+            <StaticPieWithLegend title={`Expense Breakdown (${endDate})`} data={safeData(mapDataForChart(latestMonthData?.expenseBreakdown))} colors={COLORS.expenses} theme={theme} />
           </div>
         </div>
 

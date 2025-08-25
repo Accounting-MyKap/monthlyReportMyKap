@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Logo = ({ theme }) => {
+const Logo = () => {
   return (
     <div className="flex items-center justify-center h-full py-1 mt-10 ml-40">
       <img
