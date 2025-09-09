@@ -42,16 +42,18 @@ const DrilldownPieWithLegend = ({ title, data, colors, theme }) => {
   const getColorForEquityComponent = (name) => {
     const equityColorMap = {
       'Capital': '#15803d',
-      'Period Earnings': '#22c55e',
-      'Accumulated Earnings': '#f97316',
-      'Provisions': '#15803d'
+      'Period Earnings': '#22c55e',  // Verde claro
+      'Accumulated Earnings': '#f97316',  // Naranja
+      'Withholding 2024 - 2025': '#15803d',
+      'Withholding Provision': '#15803d',
+      'Adjustments': '#15803d'
     };
     return equityColorMap[name] || colors[0];
   };
   
   const dataWithColors = sortedData.map((entry, index) => ({
     ...entry,
-    fill: title.includes('Equity Details') ? getColorForEquityComponent(entry.name) : colors[index % colors.length]
+    fill: title.includes('Equity') ? getColorForEquityComponent(entry.name) : colors[index % colors.length]
   }));
 
   return (
