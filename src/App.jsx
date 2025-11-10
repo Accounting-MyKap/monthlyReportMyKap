@@ -51,6 +51,33 @@ export default function App() {
 
   const mapDataForChart = (dataObject) => dataObject ? Object.entries(dataObject).filter(([name, value]) => value > 0).map(([name, value]) => ({ name, value, displayValue: value })) : [];
 
+  // Función para calcular datos acumulados de ingresos y gastos
+  const getAccumulatedBreakdown = (filteredData) => {
+    const accumulatedIncome = {};
+    const accumulatedExpenses = {};
+    
+    filteredData.forEach(monthData => {
+      // Acumular ingresos
+      if (monthData.incomeBreakdown) {
+        Object.entries(monthData.incomeBreakdown).forEach(([name, value]) => {
+          accumulatedIncome[name] = (accumulatedIncome[name] || 0) + value;
+        });
+      }
+      
+      // Acumular gastos
+      if (monthData.expenseBreakdown) {
+        Object.entries(monthData.expenseBreakdown).forEach(([name, value]) => {
+          accumulatedExpenses[name] = (accumulatedExpenses[name] || 0) + value;
+        });
+      }
+    });
+    
+    return {
+      income: mapDataForChart(accumulatedIncome),
+      expenses: mapDataForChart(accumulatedExpenses)
+    };
+  };
+
   const {
     balanceComposition,
     assetComposition,
@@ -278,6 +305,15 @@ export default function App() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        </div>
+        {/* 4.5 Accumulated Income and Expense Breakdown */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full">
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
+            <StaticPieWithLegend title={`Income Breakdown (Accumulated)`} data={safeData(getAccumulatedBreakdown(filteredData).income)} colors={COLORS.income} theme={theme} />
+          </div>
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
+            <StaticPieWithLegend title={`Expense Breakdown (Accumulated)`} data={safeData(getAccumulatedBreakdown(filteredData).expenses)} colors={COLORS.expenses} theme={theme} />
           </div>
         </div>
         {/* 5. Income and Expense Breakdown */}
