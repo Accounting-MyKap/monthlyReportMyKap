@@ -49,7 +49,7 @@ export default function App() {
   // Validación de datos para evitar errores en los gráficos
   const safeData = (data) => Array.isArray(data) && data.length > 0 ? data : [{ name: 'Sin datos', value: 1, displayValue: 1 }];
 
-  const mapDataForChart = (dataObject) => dataObject ? Object.entries(dataObject).filter(([name, value]) => value > 0).map(([name, value]) => ({ name, value, displayValue: value })) : [];
+  const mapDataForChart = (dataObject) => dataObject ? Object.entries(dataObject).filter(([, value]) => value > 0).map(([name, value]) => ({ name, value, displayValue: value })) : [];
 
   // Función para calcular datos acumulados de ingresos y gastos
   const getAccumulatedBreakdown = (filteredData) => {
