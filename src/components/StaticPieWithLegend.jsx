@@ -17,6 +17,12 @@ const StaticPieWithLegend = ({ title, data, colors, theme, onClick }) => {
   
   const sortedData = useMemo(() => (Array.isArray(data) ? [...data].sort((a, b) => b.value - a.value) : []), [data]);
   
+  // Create data for Pie chart where negative display values are set to 0 to hide them from the visual chart
+  const pieData = useMemo(() => sortedData.map(item => ({
+    ...item,
+    value: item.displayValue < 0 ? 0 : item.value
+  })), [sortedData]);
+  
   // Calculate total for legend display
   const totalValue = useMemo(() => {
     return sortedData.reduce((sum, item) => sum + (item.displayValue || 0), 0);
@@ -44,7 +50,7 @@ const StaticPieWithLegend = ({ title, data, colors, theme, onClick }) => {
         <ResponsiveContainer>
           <PieChart margin={chartSettings.margin}>
             <Pie
-              data={sortedData}
+              data={pieData}
               dataKey="value"
               nameKey="name"
               cx="50%"
@@ -54,7 +60,7 @@ const StaticPieWithLegend = ({ title, data, colors, theme, onClick }) => {
               label={(props) => renderDrilldownPercentageLabel({ ...props, theme })}
               onClick={onClick}
             >
-              {sortedData.map((entry, index) => (
+              {pieData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={colors[index % colors.length]} className={onClick ? 'cursor-pointer' : ''} />
               ))}
             </Pie>
