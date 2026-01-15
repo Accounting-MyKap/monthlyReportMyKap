@@ -5,7 +5,7 @@ import { formatCurrency } from '../utils/formatters';
  * Main label for pie charts with bent guide line (elbow), greater separation and omission of small sectors
  */
 export const renderMainChartLabel = ({ cx, cy, midAngle, outerRadius, percent, name, value, fill, theme, index, lineStyle }) => {
-  if (percent * 100 <= 1.8) return null; // Don't show labels for sectors <1.8%
+  if (percent * 100 <= 1) return null; // Don't show labels for sectors <1%
   const RADIAN = Math.PI / 180;
   const sx = cx + (outerRadius + 10) * Math.cos(-midAngle * RADIAN);
   const sy = cy + (outerRadius + 10) * Math.sin(-midAngle * RADIAN);
@@ -40,7 +40,7 @@ export const renderMainChartLabel = ({ cx, cy, midAngle, outerRadius, percent, n
  * Label for percentages in pie drilldown with bent guide line (elbow), greater separation and omission of small sectors
  */
 export const renderDrilldownPercentageLabel = ({ cx, cy, midAngle, outerRadius, percent, fill, theme, index, lineStyle }) => {
-  if (percent * 100 < 1) return null; // Don't show labels for sectors <4%
+  if (percent * 100 < 1) return null; // Don't show labels for sectors <1%
   const RADIAN = Math.PI / 180;
   const sx = cx + (outerRadius + 8) * Math.cos(-midAngle * RADIAN);
   const sy = cy + (outerRadius + 8) * Math.sin(-midAngle * RADIAN);

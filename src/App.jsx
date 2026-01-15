@@ -49,7 +49,7 @@ export default function App() {
   // Validación de datos para evitar errores en los gráficos
   const safeData = (data) => Array.isArray(data) && data.length > 0 ? data : [{ name: 'Sin datos', value: 1, displayValue: 1 }];
 
-  const mapDataForChart = (dataObject) => dataObject ? Object.entries(dataObject).filter(([, value]) => value > 0).map(([name, value]) => ({ name, value, displayValue: value })) : [];
+  const mapDataForChart = (dataObject) => dataObject ? Object.entries(dataObject).filter(([, value]) => value !== 0).map(([name, value]) => ({ name, value: Math.abs(value), displayValue: value })) : [];
 
   // Función para calcular datos acumulados de ingresos y gastos
   const getAccumulatedBreakdown = (filteredData) => {
@@ -67,7 +67,9 @@ export default function App() {
       // Acumular gastos
       if (monthData.expenseBreakdown) {
         Object.entries(monthData.expenseBreakdown).forEach(([name, value]) => {
-          accumulatedExpenses[name] = (accumulatedExpenses[name] || 0) + value;
+          // Normalize 'Reversal of Operating Provision' to 'Provision' to net them out
+          const normalizedName = name === 'Reversal of Operating Provision' ? 'Provision' : name;
+          accumulatedExpenses[normalizedName] = (accumulatedExpenses[normalizedName] || 0) + value;
         });
       }
     });
