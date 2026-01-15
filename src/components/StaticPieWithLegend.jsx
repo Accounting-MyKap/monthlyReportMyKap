@@ -15,7 +15,20 @@ const StaticPieWithLegend = ({ title, data, colors, theme, onClick }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
-  const sortedData = useMemo(() => (Array.isArray(data) ? [...data].sort((a, b) => b.value - a.value) : []), [data]);
+  const sortedData = useMemo(() => {
+    if (!Array.isArray(data)) return [];
+    return [...data].sort((a, b) => {
+      // Sort by sign first (positives first), then by magnitude (value)
+      const aIsNegative = (a.displayValue || 0) < 0;
+      const bIsNegative = (b.displayValue || 0) < 0;
+      
+      if (aIsNegative !== bIsNegative) {
+        return aIsNegative ? 1 : -1; // Put negatives last
+      }
+      
+      return b.value - a.value; // Sort by magnitude descending
+    });
+  }, [data]);
   
   // Create data for Pie chart where negative display values are set to 0 to hide them from the visual chart
   const pieData = useMemo(() => sortedData.map(item => ({
