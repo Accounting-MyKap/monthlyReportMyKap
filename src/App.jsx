@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Calendar, Sun, Moon, Target, TrendingUp, Clock, Shuffle, AlertTriangle, Printer } from 'lucide-react';
-import { themeConfig } from './config/theme';
+import React, { useState, useMemo, useCallback } from 'react';
+import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Calendar, Sun, Moon, Target, TrendingUp, Clock, Shuffle, AlertTriangle } from 'lucide-react';
+import { themeConfig, chartColors } from './config/theme';
 import KpiCard from './components/KpiCard';
 import PieCustomTooltip from './components/PieCustomTooltip';
 import BarLineTooltip from './components/BarLineTooltip';
@@ -11,74 +11,103 @@ import StaticPieWithLegend from './components/StaticPieWithLegend';
 import Logo from './components/Logo';
 import { financialData, allMonths } from './data/financialData';
 
-const COLORS = {
-  main: ['#004dda', '#f97316', '#22c55e'],
-  assets: ['#0e7490', '#0891b2', '#004dda', '#67e8f9'],
-  liabilities: ['#c2410c', '#ea580c', '#f97316', '#fb923c', '#fdba74', '#fed7aa'],
-  equity: ['#15803d', '#f97316', '#22c55e'],
-  income: ['#083344', '#075985', '#0369a1', '#0ea5e9', '#38bdf8', '#7dd3fc'],
-  expenses: ['#9a3412', '#c2410c', '#ea580c', '#f97316', '#fb923c', '#fdba74'],
-  cartera: ['#8b5cf6', '#d946ef'],
-  carteraPropia: ['#818cf8', '#c084fc']
-};
-
 export default function App() {
   const [theme, setTheme] = useState('light');
-  const [startDate, setStartDate] = useState(allMonths[0]);
-  const [endDate, setEndDate] = useState(allMonths[allMonths.length - 1]);
   const [portfolioView, setPortfolioView] = useState('main');
-  // Eliminar estados y funciones de IA
-  // const [isAnalysisModalOpen, setAnalysisModalOpen] = useState(false);
-  // const [analysisResult, setAnalysisResult] = useState('');
-  // const [isAnalysisLoading, setAnalysisLoading] = useState(false);
-  // const [copySuccess, setCopySuccess] = useState('');
+
+  // Parse available years and months from data
+  const { availableYears, monthsByYear, monthNames } = useMemo(() => {
+    const years = new Set();
+    const monthsMap = {};
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+    allMonths.forEach(m => {
+      const [month, year] = m.split('-');
+      const fullYear = `20${year}`;
+      years.add(fullYear);
+      if (!monthsMap[fullYear]) monthsMap[fullYear] = [];
+      monthsMap[fullYear].push({ value: m, label: month });
+    });
+
+    return {
+      availableYears: Array.from(years).sort(),
+      monthsByYear: monthsMap,
+      monthNames: months
+    };
+  }, []);
+
+  // Initialize with first and last available dates
+  const firstMonth = allMonths[0];
+  const lastMonth = allMonths[allMonths.length - 1];
+  const [startYear, startMonthVal] = firstMonth.split('-');
+  const [endYear, endMonthVal] = lastMonth.split('-');
+
+  const [startDateYear, setStartDateYear] = useState(`20${startMonthVal}`);
+  const [startDateMonth, setStartDateMonth] = useState(firstMonth);
+  const [endDateYear, setEndDateYear] = useState(`20${endMonthVal}`);
+  const [endDateMonth, setEndDateMonth] = useState(lastMonth);
+
+  // When year changes, adjust month to first available in that year
+  const handleStartYearChange = (year) => {
+    setStartDateYear(year);
+    const monthsInYear = monthsByYear[year];
+    if (monthsInYear && monthsInYear.length > 0) {
+      setStartDateMonth(monthsInYear[0].value);
+    }
+  };
+
+  const handleEndYearChange = (year) => {
+    setEndDateYear(year);
+    const monthsInYear = monthsByYear[year];
+    if (monthsInYear && monthsInYear.length > 0) {
+      setEndDateMonth(monthsInYear[monthsInYear.length - 1].value);
+    }
+  };
 
   const filteredData = useMemo(() => {
-    const startIndex = allMonths.indexOf(startDate);
-    const endIndex = allMonths.indexOf(endDate);
+    const startIndex = allMonths.indexOf(startDateMonth);
+    const endIndex = allMonths.indexOf(endDateMonth);
     const data = startIndex <= endIndex ? financialData.slice(startIndex, endIndex + 1) : [];
-    // Add combined costs and expenses field
     return data.map(item => ({
       ...item,
       costosYGastos: (item.costos || 0) + (item.gastos || 0)
     }));
-  }, [startDate, endDate]);
+  }, [startDateMonth, endDateMonth]);
 
   const latestMonthData = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
 
-  // Validación de datos para evitar errores en los gráficos
-  const safeData = (data) => Array.isArray(data) && data.length > 0 ? data : [{ name: 'Sin datos', value: 1, displayValue: 1 }];
+  const safeData = (data) => Array.isArray(data) && data.length > 0 ? data : [{ name: 'No data', value: 1, displayValue: 1 }];
 
-  const mapDataForChart = (dataObject) => dataObject ? Object.entries(dataObject).filter(([, value]) => value !== 0).map(([name, value]) => ({ name, value: Math.abs(value), displayValue: value })) : [];
+  const mapDataForChart = (dataObject) => dataObject
+    ? Object.entries(dataObject)
+      .filter(([, value]) => value !== 0)
+      .map(([name, value]) => ({ name, value: Math.abs(value), displayValue: value }))
+    : [];
 
-  // Función para calcular datos acumulados de ingresos y gastos
-  const getAccumulatedBreakdown = (filteredData) => {
+  const getAccumulatedBreakdown = useCallback((filteredData) => {
     const accumulatedIncome = {};
     const accumulatedExpenses = {};
-    
+
     filteredData.forEach(monthData => {
-      // Acumular ingresos
       if (monthData.incomeBreakdown) {
         Object.entries(monthData.incomeBreakdown).forEach(([name, value]) => {
           accumulatedIncome[name] = (accumulatedIncome[name] || 0) + value;
         });
       }
-      
-      // Acumular gastos
+
       if (monthData.expenseBreakdown) {
         Object.entries(monthData.expenseBreakdown).forEach(([name, value]) => {
-          // Normalize 'Reversal of Operating Provision' to 'Provision' to net them out
           const normalizedName = name === 'Reversal of Operating Provision' ? 'Provision' : name;
           accumulatedExpenses[normalizedName] = (accumulatedExpenses[normalizedName] || 0) + value;
         });
       }
     });
-    
+
     return {
       income: mapDataForChart(accumulatedIncome),
       expenses: mapDataForChart(accumulatedExpenses)
     };
-  };
+  }, []);
 
   const {
     balanceComposition,
@@ -89,24 +118,20 @@ export default function App() {
     carteraPropiaComposition
   } = useMemo(() => {
     if (!latestMonthData) return {
-      balanceComposition: [], assetComposition: [], liabilityComposition: [], equityComposition: [], carteraComposition: [], carteraPropiaComposition: []
+      balanceComposition: [], assetComposition: [], liabilityComposition: [],
+      equityComposition: [], carteraComposition: [], carteraPropiaComposition: []
     };
+
     const originalDataForMonth = financialData.find(d => d.month === latestMonthData.month) || {};
-    
-    // Use equityBreakdown from financialData instead of manual calculation
-    const equityData = originalDataForMonth.equityBreakdown ? 
-      Object.entries(originalDataForMonth.equityBreakdown).map(([name, value]) => ({ name, value })) :
-      [
+
+    const equityData = originalDataForMonth.equityBreakdown
+      ? Object.entries(originalDataForMonth.equityBreakdown).map(([name, value]) => ({ name, value }))
+      : [
         { name: 'Capital', value: latestMonthData.capital || 0 },
         { name: 'Period Earnings', value: latestMonthData.utilidad || 0 },
         { name: 'Accumulated Earnings', value: latestMonthData.utilidadAcum2024 || 0 },
-        { name: 'Provisions', value: (
-          (latestMonthData.ajusteRamParkPlace || 0) +
-          (latestMonthData.ajusteAmortizacion2024 || 0) +
-          (latestMonthData.withholdingSociosExtranjeros2024 || 0) +
-          (latestMonthData.provisionWithholdingSociosExtranjeros2025 || 0)
-        )}
       ];
+
     return {
       balanceComposition: [
         { name: 'Assets', value: latestMonthData.activos },
@@ -115,7 +140,9 @@ export default function App() {
       ].map(d => ({ ...d, displayValue: d.value })),
       assetComposition: mapDataForChart(originalDataForMonth.assetBreakdown),
       liabilityComposition: mapDataForChart(originalDataForMonth.liabilityBreakdown),
-      equityComposition: equityData.filter(item => item.value !== 0).map(item => ({ name: item.name, value: Math.abs(item.value), displayValue: item.value })),
+      equityComposition: equityData
+        .filter(item => item.value !== 0)
+        .map(item => ({ name: item.name, value: Math.abs(item.value), displayValue: item.value })),
       carteraComposition: [
         { name: 'Own Portfolio', value: latestMonthData.carteraPropia },
         { name: 'Third Party Portfolio', value: latestMonthData.carteraTerceros }
@@ -131,133 +158,168 @@ export default function App() {
     if (data.name === 'Own Portfolio') setPortfolioView('propia');
   };
 
+  const handleExportPDF = () => {
+    window.print();
+  };
+
   const currentTheme = themeConfig[theme];
+  const isDark = theme === 'dark';
 
   return (
-    <div className={`${currentTheme.background} ${currentTheme.textPrimary} font-sans p-4 sm:p-6 lg:p-8 min-h-screen`}>
-      <style>{`
-        @media print {
-          body {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            background: #fff !important;
-            color: #222 !important;
-            font-size: 12pt;
-            margin: 0;
-          }
-          .no-print, .no-print * {
-            display: none !important;
-          }
-          .fixed, .z-40, .shadow-lg, .shadow-2xl {
-            position: static !important;
-            box-shadow: none !important;
-            z-index: auto !important;
-          }
-          .rounded-2xl, .rounded-xl, .rounded-lg, .rounded-md, .rounded-full {
-            border-radius: 0 !important;
-          }
-          .bg-gray-800/50, .bg-gray-200/50, .bg-gray-900, .bg-gray-100, .bg-white, .bg-gray-800, .bg-gray-700, .bg-gray-200 {
-            background: #fff !important;
-          }
-          .text-white, .text-gray-800, .text-gray-400, .text-gray-500, .text-cyan-400, .text-cyan-600, .text-cyan-300, .text-cyan-700 {
-            color: #222 !important;
-          }
-          .max-w-7xl, .min-h-[480px], .min-h-screen {
-            max-width: 100% !important;
-            min-height: 0 !important;
-          }
-          .p-6, .p-4 {
-            padding: 18px 24px !important;
-          }
-          h1, h2, h3 {
-            margin: 0 0 8px 0 !important;
-            page-break-after: avoid;
-          }
-          .w-full {
-            width: 100% !important;
-          }
-          .h-[400px], .h-[420px], .h-[250px], .h-[300px] {
-            height: auto !important;
-            min-height: 200px !important;
-          }
-          .mt-8, .mb-8 {
-            margin-top: 8px !important;
-            margin-bottom: 8px !important;
-          }
-          .page-break {
-            page-break-before: always;
-          }
-          .grid {
-            display: block !important;
-            grid-template-columns: none !important;
-            gap: 0 !important;
-          }
-          .card, .p-6, .p-4 {
-            width: 95vw !important;
-            margin: 0 auto 12px auto !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-            min-height: 250px !important;
-            page-break-inside: avoid !important;
-          }
-        }
-      `}</style>
-      {/* Header and sticky filters */}
-      <div className={`sticky top-0 z-50 ${theme === 'dark' ? 'bg-gray-800/95' : 'bg-[rgba(243,244,246,0.95)]'} backdrop-blur shadow-md pb-1 mb-2 max-w-7xl mx-auto rounded-2xl`}>
-        <header className="relative no-print">
-          <div className="grid grid-cols-3 items-center px-2 sm:px-4 py-0.1">
-            {/* Logo en contenedor independiente - columna izquierda */}
-            <div className="flex justify-start">
-              <Logo theme={theme} />
+    <div className={`${currentTheme.background} min-h-screen font-sans transition-colors duration-300`}>
+      {/* Header - Sticky with glassmorphism */}
+      <div className={`sticky top-0 z-50 ${currentTheme.header.bg} ${currentTheme.header.border} shadow-sm no-print`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <header className="py-3">
+            <div className="grid grid-cols-3 items-center gap-4">
+              {/* Logo */}
+              <div className="flex justify-start">
+                <Logo theme={theme} />
+              </div>
+
+              {/* Title */}
+              <div className="flex flex-col items-center justify-center">
+                <h1
+                  className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight"
+                  style={{ color: isDark ? '#fff' : '#004dda' }}
+                >
+                  Financial Dashboard
+                </h1>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end items-center gap-2">
+                <button
+                  onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                  aria-label="Toggle theme"
+                  className={`
+                    p-2 rounded-lg transition-all duration-250
+                    ${isDark
+                      ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}
+                  `}
+                >
+                  {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
-            
-            {/* Títulos centrados - columna central */}
-            <div className="flex flex-col items-center justify-center">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Financial Dashboard</h1>
+
+            {/* Date Filters */}
+            <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 mt-3">
+              {/* Start Date */}
+              <div className="flex items-center gap-2">
+                <Calendar className={`h-4 w-4 ${isDark ? 'text-cyan-400' : 'text-primary'}`} />
+                <span className="text-sm font-medium" style={{ color: currentTheme.textSecondary }}>
+                  From:
+                </span>
+                <select
+                  id="start-year"
+                  value={startDateYear}
+                  onChange={e => handleStartYearChange(e.target.value)}
+                  className={`
+                    ${currentTheme.select.bg} ${currentTheme.select.text} 
+                    border ${currentTheme.select.border} 
+                    rounded-lg px-2 py-1.5 text-sm font-medium
+                    focus:outline-none focus:ring-2 focus:ring-primary/50
+                    transition-all duration-150
+                  `}
+                >
+                  {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+                <select
+                  id="start-month"
+                  value={startDateMonth}
+                  onChange={e => setStartDateMonth(e.target.value)}
+                  className={`
+                    ${currentTheme.select.bg} ${currentTheme.select.text} 
+                    border ${currentTheme.select.border} 
+                    rounded-lg px-2 py-1.5 text-sm font-medium
+                    focus:outline-none focus:ring-2 focus:ring-primary/50
+                    transition-all duration-150
+                  `}
+                >
+                  {(monthsByYear[startDateYear] || []).map(m => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* End Date */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium" style={{ color: currentTheme.textSecondary }}>
+                  To:
+                </span>
+                <select
+                  id="end-year"
+                  value={endDateYear}
+                  onChange={e => handleEndYearChange(e.target.value)}
+                  className={`
+                    ${currentTheme.select.bg} ${currentTheme.select.text} 
+                    border ${currentTheme.select.border} 
+                    rounded-lg px-2 py-1.5 text-sm font-medium
+                    focus:outline-none focus:ring-2 focus:ring-primary/50
+                    transition-all duration-150
+                  `}
+                >
+                  {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+                <select
+                  id="end-month"
+                  value={endDateMonth}
+                  onChange={e => setEndDateMonth(e.target.value)}
+                  className={`
+                    ${currentTheme.select.bg} ${currentTheme.select.text} 
+                    border ${currentTheme.select.border} 
+                    rounded-lg px-2 py-1.5 text-sm font-medium
+                    focus:outline-none focus:ring-2 focus:ring-primary/50
+                    transition-all duration-150
+                  `}
+                >
+                  {(monthsByYear[endDateYear] || []).map(m => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            
-            {/* Botón de tema - columna derecha */}
-            <div className="flex justify-end">
-              <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label="Change Theme" className="p-0.5 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500">
-                {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-        </header>
-        <div className={`flex flex-wrap justify-center items-center gap-2 sm:gap-4 px-2 sm:px-4 pb-1 pt-0 rounded-lg no-print`}>
-          <label htmlFor="start-date" className="flex items-center gap-1 sm:gap-2 text-sm sm:text-base" style={{color: theme === 'dark' ? '#fff' : '#64748b'}}><Calendar className={`h-4 w-4 sm:h-5 sm:w-5 ${currentTheme.accent}`}/> Start Date:</label>
-          <select id="start-date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${currentTheme.select.bg} ${currentTheme.select.text} ${currentTheme.select.border} rounded-md p-1 sm:p-2 text-sm sm:text-base`}>
-            {allMonths.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-          <label htmlFor="end-date" className="flex items-center gap-1 sm:gap-2 text-sm sm:text-base" style={{color: theme === 'dark' ? '#fff' : '#64748b'}}><Calendar className={`h-4 w-4 sm:h-5 sm:w-5 ${currentTheme.accent}`}/> End Date:</label>
-          <select id="end-date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${currentTheme.select.bg} ${currentTheme.select.text} ${currentTheme.select.border} rounded-md p-1 sm:p-2 text-sm sm:text-base`}>
-            {allMonths.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+          </header>
         </div>
       </div>
-      {/* Main container for charts and sections */}
-      <div className="max-w-7xl mx-auto">
-        {/* 1. Balance Sheet Breakdown */}
-        <div className="grid grid-cols-1 gap-8">
-          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <h2 className="text-lg sm:text-xl font-bold text-center mb-2 sm:mb-4 px-2" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Balance Sheet Breakdown ({endDate})</h2>
-            <div className="w-full h-64 sm:h-80 md:h-96">
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* 1. Balance Sheet Breakdown - Full Width */}
+        <section className="mb-8 animate-slide-up">
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-card border ${isDark ? 'border-gray-700/50' : 'border-gray-100'}`}>
+            <h2
+              className="text-lg sm:text-xl font-bold text-center mb-4"
+              style={{ color: isDark ? '#fff' : '#004dda' }}
+            >
+              Balance Sheet Breakdown ({endDateMonth})
+            </h2>
+            <div className="w-full h-72 sm:h-80 md:h-96">
               <ResponsiveContainer>
-                <PieChart margin={{ top: 20, right: 40, left: 40, bottom: 20 }}>
+                <PieChart margin={{ top: 40, right: 80, left: 80, bottom: 40 }}>
                   <Pie
                     data={safeData(balanceComposition)}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={80}
+                    outerRadius={90}
                     labelLine={false}
                     label={props => renderMainChartLabel({ ...props, theme })}
+                    animationBegin={0}
+                    animationDuration={800}
+                    animationEasing="ease-out"
                   >
                     {safeData(balanceComposition).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS.main[index % COLORS.main.length]} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={chartColors.main[index % chartColors.main.length]}
+                        stroke={isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.9)'}
+                        strokeWidth={3}
+                      />
                     ))}
                   </Pie>
                   <Tooltip content={<PieCustomTooltip theme={theme} />} />
@@ -265,78 +327,186 @@ export default function App() {
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
+        </section>
+
         {/* 2. Assets and Portfolio Distribution */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full">
-          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg`}>
-            <DrilldownPieWithLegend title={`Assets (${endDate})`} data={safeData(assetComposition)} colors={COLORS.assets} theme={theme} />
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-card border ${isDark ? 'border-gray-700/50' : 'border-gray-100'} min-h-[450px] animate-slide-up delay-100`}>
+            <DrilldownPieWithLegend
+              title={`Assets (${endDateMonth})`}
+              data={safeData(assetComposition)}
+              colors={chartColors.assets}
+              theme={theme}
+            />
           </div>
-          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg`}>
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-card border ${isDark ? 'border-gray-700/50' : 'border-gray-100'} min-h-[450px] animate-slide-up delay-200`}>
             {portfolioView === 'main' ? (
-              <StaticPieWithLegend title={`Total Portfolio Distribution (${endDate})`} data={safeData(carteraComposition)} colors={COLORS.cartera} theme={theme} onClick={handlePortfolioClick} />
+              <StaticPieWithLegend
+                title={`Portfolio Distribution (${endDateMonth})`}
+                data={safeData(carteraComposition)}
+                colors={chartColors.cartera}
+                theme={theme}
+                onClick={handlePortfolioClick}
+              />
             ) : (
-              <DrilldownPieWithLegend title="Own Portfolio Details" data={safeData(carteraPropiaComposition)} colors={COLORS.carteraPropia} onBack={() => setPortfolioView('main')} theme={theme} />
+              <DrilldownPieWithLegend
+                title="Own Portfolio Details"
+                data={safeData(carteraPropiaComposition)}
+                colors={chartColors.carteraPropia}
+                onBack={() => setPortfolioView('main')}
+                theme={theme}
+              />
             )}
           </div>
-        </div>
+        </section>
+
         {/* 3. Liabilities and Equity */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full">
-          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg`}>
-            <DrilldownPieWithLegend title={`Liabilities (${endDate})`} data={safeData(liabilityComposition)} colors={COLORS.liabilities} theme={theme} />
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-card border ${isDark ? 'border-gray-700/50' : 'border-gray-100'} min-h-[450px] animate-slide-up delay-100`}>
+            <DrilldownPieWithLegend
+              title={`Liabilities (${endDateMonth})`}
+              data={safeData(liabilityComposition)}
+              colors={chartColors.liabilities}
+              theme={theme}
+            />
           </div>
-          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg`}>
-            <DrilldownPieWithLegend title={`Equity (${endDate})`} data={safeData(equityComposition)} colors={COLORS.equity} theme={theme} />
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-card border ${isDark ? 'border-gray-700/50' : 'border-gray-100'} min-h-[450px] animate-slide-up delay-200`}>
+            <DrilldownPieWithLegend
+              title={`Equity (${endDateMonth})`}
+              data={safeData(equityComposition)}
+              colors={chartColors.equity}
+              theme={theme}
+            />
           </div>
-        </div>
-        {/* 4. Performance (P&L) */}
-        <div className="grid grid-cols-1 gap-8 mt-8">
-          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4 px-2" style={{color: theme === 'dark' ? '#fff' : '#004dda'}}>Performance (P&L)</h2>
-            <div className="w-full h-64 sm:h-80 md:h-[420px]">
+        </section>
+
+        {/* 4. Performance (P&L) - Full Width */}
+        <section className="mb-8 animate-slide-up">
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-card border ${isDark ? 'border-gray-700/50' : 'border-gray-100'}`}>
+            <h2
+              className="text-lg sm:text-xl font-bold mb-4"
+              style={{ color: isDark ? '#fff' : '#004dda' }}
+            >
+              Performance (P&L)
+            </h2>
+            <div className="w-full h-72 sm:h-80 md:h-[420px]">
               <ResponsiveContainer>
-                <LineChart data={safeData(filteredData)} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={currentTheme.grid} />
-                  <XAxis dataKey="month" stroke={currentTheme.axis} />
-                  <YAxis stroke={currentTheme.axis} tickFormatter={value => `$${value / 1000}k`} />
+                <LineChart data={safeData(filteredData)} margin={{ top: 20, right: 30, left: 0, bottom: 10 }}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={currentTheme.grid}
+                    strokeOpacity={currentTheme.gridOpacity}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    stroke={currentTheme.axis}
+                    tick={{ fill: currentTheme.textSecondary, fontSize: 12 }}
+                    axisLine={{ stroke: currentTheme.grid }}
+                  />
+                  <YAxis
+                    stroke={currentTheme.axis}
+                    tick={{ fill: currentTheme.textSecondary, fontSize: 12 }}
+                    tickFormatter={value => `$${(value / 1000).toFixed(0)}k`}
+                    axisLine={{ stroke: currentTheme.grid }}
+                  />
                   <Tooltip content={<BarLineTooltip theme={theme} />} />
-                  <Legend />
-                  <Line type="monotone" dataKey="ingresos" stroke="#004dda" strokeWidth={3} name="Income" />
-                  <Line type="monotone" dataKey="costosYGastos" stroke="#f59e0b" strokeWidth={3} name="Costs & Expenses" />
-                  <Line type="monotone" dataKey="utilidadDelPeriodo" stroke="#22c55e" strokeWidth={3} name="Profit" />
-                  <Line type="monotone" dataKey="utilidad" stroke="#8b5cf6" strokeWidth={3} name="Accumulated Profit 2025" />
+                  <Legend
+                    wrapperStyle={{ paddingTop: 15 }}
+                    iconType="circle"
+                    iconSize={8}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="ingresos"
+                    stroke={chartColors.lines.income}
+                    strokeWidth={3}
+                    name="Income"
+                    dot={{ fill: chartColors.lines.income, strokeWidth: 0, r: 4 }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="costosYGastos"
+                    stroke={chartColors.lines.costs}
+                    strokeWidth={3}
+                    name="Costs & Expenses"
+                    dot={{ fill: chartColors.lines.costs, strokeWidth: 0, r: 4 }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="utilidadDelPeriodo"
+                    stroke={chartColors.lines.profit}
+                    strokeWidth={3}
+                    name="Profit"
+                    dot={{ fill: chartColors.lines.profit, strokeWidth: 0, r: 4 }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="utilidad"
+                    stroke={chartColors.lines.accumulated}
+                    strokeWidth={3}
+                    name="Accumulated Profit 2025"
+                    dot={{ fill: chartColors.lines.accumulated, strokeWidth: 0, r: 4 }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
-        {/* 4.5 Accumulated Income and Expense Breakdown */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full">
-          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <StaticPieWithLegend title={`Income Breakdown (Accumulated)`} data={safeData(getAccumulatedBreakdown(filteredData).income)} colors={COLORS.income} theme={theme} />
-          </div>
-          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <StaticPieWithLegend title={`Expense Breakdown (Accumulated)`} data={safeData(getAccumulatedBreakdown(filteredData).expenses)} colors={COLORS.expenses} theme={theme} />
-          </div>
-        </div>
-        {/* 5. Income and Expense Breakdown */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full">
-          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <StaticPieWithLegend title={`Income Breakdown (${endDate})`} data={safeData(mapDataForChart(latestMonthData?.incomeBreakdown))} colors={COLORS.income} theme={theme} />
-          </div>
-          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-lg min-h-[480px]`}>
-            <StaticPieWithLegend title={`Expense Breakdown (${endDate})`} data={safeData(mapDataForChart(latestMonthData?.expenseBreakdown))} colors={COLORS.expenses} theme={theme} />
-          </div>
-        </div>
+        </section>
 
-        {/* 6. KPIs ocupando todo el ancho */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-8">
+        {/* 5. Accumulated Income and Expense Breakdown */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-card border ${isDark ? 'border-gray-700/50' : 'border-gray-100'} min-h-[450px] animate-slide-up delay-100`}>
+            <StaticPieWithLegend
+              title="Income Breakdown (Accumulated)"
+              data={safeData(getAccumulatedBreakdown(filteredData).income)}
+              colors={chartColors.income}
+              theme={theme}
+            />
+          </div>
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-card border ${isDark ? 'border-gray-700/50' : 'border-gray-100'} min-h-[450px] animate-slide-up delay-200`}>
+            <StaticPieWithLegend
+              title="Expense Breakdown (Accumulated)"
+              data={safeData(getAccumulatedBreakdown(filteredData).expenses)}
+              colors={chartColors.expenses}
+              theme={theme}
+            />
+          </div>
+        </section>
+
+        {/* 6. Monthly Income and Expense Breakdown */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-card border ${isDark ? 'border-gray-700/50' : 'border-gray-100'} min-h-[450px] animate-slide-up delay-100`}>
+            <StaticPieWithLegend
+              title={`Income Breakdown (${endDateMonth})`}
+              data={safeData(mapDataForChart(latestMonthData?.incomeBreakdown))}
+              colors={chartColors.income}
+              theme={theme}
+            />
+          </div>
+          <div className={`${currentTheme.card} p-6 rounded-2xl shadow-card border ${isDark ? 'border-gray-700/50' : 'border-gray-100'} min-h-[450px] animate-slide-up delay-200`}>
+            <StaticPieWithLegend
+              title={`Expense Breakdown (${endDateMonth})`}
+              data={safeData(mapDataForChart(latestMonthData?.expenseBreakdown))}
+              colors={chartColors.expenses}
+              theme={theme}
+            />
+          </div>
+        </section>
+
+        {/* 7. KPIs */}
+        <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
           <KpiCard icon={Target} title="Approval Rate" value={latestMonthData?.approvalRate ? `${latestMonthData.approvalRate}%` : 'N/A'} theme={theme} />
           <KpiCard icon={TrendingUp} title="Disbursement Rate" value={latestMonthData?.disbursementRate ? `${latestMonthData.disbursementRate}%` : 'N/A'} theme={theme} />
           <KpiCard icon={Clock} title="Total Cycle" value={latestMonthData?.timeCycle ? `${latestMonthData.timeCycle} days` : 'N/A'} theme={theme} />
           <KpiCard icon={Shuffle} title="LTV / CAC" value={latestMonthData?.ltvCac ?? 'N/A'} theme={theme} />
           <KpiCard icon={AlertTriangle} title="NPLs" value={latestMonthData?.npls ? `${latestMonthData.npls}%` : 'N/A'} theme={theme} />
-        </div>
-      </div>
+        </section>
+
+      </main>
     </div>
   );
 }
