@@ -36,15 +36,15 @@ export default function App() {
     };
   }, []);
 
-  // Initialize with first and last available dates
-  const firstMonth = allMonths[0];
+  // Initialize with 2026 data by default
   const lastMonth = allMonths[allMonths.length - 1];
-  const [startYear, startMonthVal] = firstMonth.split('-');
-  const [endYear, endMonthVal] = lastMonth.split('-');
 
-  const [startDateYear, setStartDateYear] = useState(`20${startMonthVal}`);
-  const [startDateMonth, setStartDateMonth] = useState(firstMonth);
-  const [endDateYear, setEndDateYear] = useState(`20${endMonthVal}`);
+  // Find first month in 2026
+  const firstMonth2026 = allMonths.find(m => m.endsWith('-26')) || lastMonth;
+
+  const [startDateYear, setStartDateYear] = useState('2026');
+  const [startDateMonth, setStartDateMonth] = useState(firstMonth2026);
+  const [endDateYear, setEndDateYear] = useState('2026');
   const [endDateMonth, setEndDateMonth] = useState(lastMonth);
 
   // When year changes, adjust month to first available in that year
