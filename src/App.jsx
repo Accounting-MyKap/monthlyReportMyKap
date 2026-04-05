@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Calendar, Sun, Moon, Target, TrendingUp, Clock, Shuffle, AlertTriangle } from 'lucide-react';
+import { Calendar, Sun, Moon, Target, TrendingUp, Clock, Shuffle, AlertTriangle, Loader2 } from 'lucide-react';
 import { themeConfig, chartColors } from './config/theme';
 import KpiCard from './components/KpiCard';
 import PieCustomTooltip from './components/PieCustomTooltip';
@@ -9,9 +9,10 @@ import { renderMainChartLabel } from './components/chartLabels';
 import DrilldownPieWithLegend from './components/DrilldownPieWithLegend';
 import StaticPieWithLegend from './components/StaticPieWithLegend';
 import Logo from './components/Logo';
-import { financialData, allMonths } from './data/financialData';
+import { useFinancialData } from './hooks/useFinancialData';
 
 export default function App() {
+  const { data: financialData, allMonths, loading, error } = useFinancialData();
   const [theme, setTheme] = useState('light');
   const [portfolioView, setPortfolioView] = useState('main');
 
@@ -34,18 +35,25 @@ export default function App() {
       monthsByYear: monthsMap,
       monthNames: months
     };
-  }, []);
-
-  // Initialize with 2026 data by default
-  const lastMonth = allMonths[allMonths.length - 1];
-
-  // Find first month in 2026
-  const firstMonth2026 = allMonths.find(m => m.endsWith('-26')) || lastMonth;
+  }, [allMonths]);
 
   const [startDateYear, setStartDateYear] = useState('2026');
-  const [startDateMonth, setStartDateMonth] = useState(firstMonth2026);
+  const [startDateMonth, setStartDateMonth] = useState('');
   const [endDateYear, setEndDateYear] = useState('2026');
-  const [endDateMonth, setEndDateMonth] = useState(lastMonth);
+  const [endDateMonth, setEndDateMonth] = useState('');
+
+  // Set default date range once data loads (first month of 2026 → last month)
+  useEffect(() => {
+    if (allMonths.length === 0) return;
+    const lastMonth = allMonths[allMonths.length - 1];
+    const firstMonth2026 = allMonths.find(m => m.endsWith('-26')) || lastMonth;
+    const startYear = `20${firstMonth2026.split('-')[1]}`;
+    const endYear = `20${lastMonth.split('-')[1]}`;
+    setStartDateYear(startYear);
+    setStartDateMonth(firstMonth2026);
+    setEndDateYear(endYear);
+    setEndDateMonth(lastMonth);
+  }, [allMonths.length]);
 
   // When year changes, adjust month to first available in that year
   const handleStartYearChange = (year) => {
@@ -65,14 +73,15 @@ export default function App() {
   };
 
   const filteredData = useMemo(() => {
+    if (!startDateMonth || !endDateMonth) return [];
     const startIndex = allMonths.indexOf(startDateMonth);
     const endIndex = allMonths.indexOf(endDateMonth);
-    const data = startIndex <= endIndex ? financialData.slice(startIndex, endIndex + 1) : [];
-    return data.map(item => ({
+    const slice = startIndex <= endIndex ? financialData.slice(startIndex, endIndex + 1) : [];
+    return slice.map(item => ({
       ...item,
       costosYGastos: (item.costos || 0) + (item.gastos || 0)
     }));
-  }, [startDateMonth, endDateMonth]);
+  }, [startDateMonth, endDateMonth, allMonths, financialData]);
 
   const latestMonthData = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
 
@@ -122,7 +131,7 @@ export default function App() {
       equityComposition: [], carteraComposition: [], carteraPropiaComposition: []
     };
 
-    const originalDataForMonth = financialData.find(d => d.month === latestMonthData.month) || {};
+    const originalDataForMonth = financialData.find(d => d.month === latestMonthData?.month) || {};
 
     const equityData = originalDataForMonth.equityBreakdown
       ? Object.entries(originalDataForMonth.equityBreakdown).map(([name, value]) => ({ name, value }))
@@ -164,6 +173,33 @@ export default function App() {
 
   const currentTheme = themeConfig[theme];
   const isDark = theme === 'dark';
+
+  if (loading) {
+    return (
+      <div className={`${currentTheme.background} min-h-screen flex flex-col items-center justify-center gap-4`}>
+        <Loader2 className="h-10 w-10 animate-spin" style={{ color: '#004dda' }} />
+        <p className="text-base font-medium" style={{ color: currentTheme.textSecondary }}>
+          Cargando datos desde Google Sheets…
+        </p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`${currentTheme.background} min-h-screen flex flex-col items-center justify-center gap-4 px-4`}>
+        <AlertTriangle className="h-10 w-10 text-red-500" />
+        <p className="text-base font-semibold text-red-600">No se pudieron cargar los datos</p>
+        <p className="text-sm text-center max-w-md" style={{ color: currentTheme.textSecondary }}>{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={`${currentTheme.background} min-h-screen font-sans transition-colors duration-300`}>
