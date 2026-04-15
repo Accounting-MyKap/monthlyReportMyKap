@@ -447,7 +447,7 @@ export default function App() {
                     dataKey="utilidad"
                     stroke={chartColors.lines.accumulated}
                     strokeWidth={3}
-                    name="Accumulated Profit 2025"
+                    name="Accumulated Profit"
                     dot={{ fill: chartColors.lines.accumulated, strokeWidth: 0, r: 4 }}
                     activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
                   />
